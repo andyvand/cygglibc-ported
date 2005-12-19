@@ -1,6 +1,8 @@
-/* Thread-local storage handling in the ELF dynamic linker.  Alpha version.
-   Copyright (C) 2003, 2005 Free Software Foundation, Inc.
+/* ffs -- find first set bit in a word, counted from least significant end.
+   For mc68020, mc68030, mc68040.
    This file is part of the GNU C Library.
+   Copyright (C) 1991, 1992, 1997, 1998, 2004, 2005 Free Software Foundation, Inc.
+   Contributed by Torbjorn Granlund (tege@sics.se).
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -17,21 +19,30 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#include <csu/libc-tls.c>
-#include <dl-tls.h>
+#define ffsl __something_else
+#include <string.h>
 
-#if USE_TLS
+#undef	ffs
 
-/* On Alpha, linker optimizations are not required, so __tls_get_addr
-   can be called even in statically linked binaries.  In this case module
-   must be always 1 and PT_TLS segment exist in the binary, otherwise it
-   would not link.  */
+#if	defined (__GNUC__) && defined (__mc68020__)
 
-void *
-__tls_get_addr (tls_index *ti)
+int
+__ffs (x)
+     int x;
 {
-  dtv_t *dtv = THREAD_DTV ();
-  return (char *) dtv[1].pointer.val + ti->ti_offset;
+  int cnt;
+
+  asm ("bfffo %1{#0:#0},%0" : "=d" (cnt) : "dm" (x & -x));
+
+  return 32 - cnt;
 }
+weak_alias (__ffs, ffs)
+libc_hidden_builtin_def (ffs)
+#undef ffsl
+weak_alias (__ffs, ffsl)
+
+#else
+
+#include <string/ffs.c>
 
 #endif

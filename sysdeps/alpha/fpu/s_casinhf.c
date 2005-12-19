@@ -1,5 +1,5 @@
-/* Thread-local storage handling in the ELF dynamic linker.  Alpha version.
-   Copyright (C) 2003, 2005 Free Software Foundation, Inc.
+/* Return arc hyperbole sine of complex float value.
+   Copyright (C) 2004, 2005 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -17,21 +17,35 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#include <csu/libc-tls.c>
-#include <dl-tls.h>
+#define __casinhf __casinhf_not_defined
+#define casinhf casinhf_not_defined
 
-#if USE_TLS
+#include <complex.h>
+#include <math.h>
 
-/* On Alpha, linker optimizations are not required, so __tls_get_addr
-   can be called even in statically linked binaries.  In this case module
-   must be always 1 and PT_TLS segment exist in the binary, otherwise it
-   would not link.  */
+#undef __casinhf
+#undef casinhf
+#define __casinhf internal_casinhf
 
-void *
-__tls_get_addr (tls_index *ti)
+static _Complex float internal_casinhf (_Complex float x);
+
+#include <math/s_casinhf.c>
+#include "cfloat-compat.h"
+
+#undef __casinhf
+
+c1_cfloat_rettype
+__c1_casinhf (c1_cfloat_decl (x))
 {
-  dtv_t *dtv = THREAD_DTV ();
-  return (char *) dtv[1].pointer.val + ti->ti_offset;
+  _Complex float r = internal_casinhf (c1_cfloat_value (x));
+  return c1_cfloat_return (r);
 }
 
-#endif
+c2_cfloat_rettype
+__c2_casinhf (c2_cfloat_decl (x))
+{
+  _Complex float r = internal_casinhf (c2_cfloat_value (x));
+  return c2_cfloat_return (r);
+}
+
+cfloat_versions (casinhf);

@@ -1,5 +1,4 @@
-/* Thread-local storage handling in the ELF dynamic linker.  Alpha version.
-   Copyright (C) 2003, 2005 Free Software Foundation, Inc.
+/* Copyright (C) 2003 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -17,21 +16,24 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#include <csu/libc-tls.c>
-#include <dl-tls.h>
+#include <sysdep.h>
+#include <sys/cdefs.h>
+#include <stddef.h>
 
-#if USE_TLS
+/*
+ * In order to get the hidden arguments for rt_sigaction set up
+ * properly, we need to call the assembly version.  Detect this in the
+ * INLINE_SYSCALL macro, and fail to expand inline in that case.
+ */
 
-/* On Alpha, linker optimizations are not required, so __tls_get_addr
-   can be called even in statically linked binaries.  In this case module
-   must be always 1 and PT_TLS segment exist in the binary, otherwise it
-   would not link.  */
+#undef INLINE_SYSCALL
+#define INLINE_SYSCALL(name, nr, args...)       \
+        (__NR_##name == __NR_rt_sigaction       \
+         ? __syscall_rt_sigaction(args)         \
+         : INLINE_SYSCALL1(name, nr, args))
 
-void *
-__tls_get_addr (tls_index *ti)
-{
-  dtv_t *dtv = THREAD_DTV ();
-  return (char *) dtv[1].pointer.val + ti->ti_offset;
-}
+struct kernel_sigaction;
+extern int __syscall_rt_sigaction (int, const struct kernel_sigaction *__unbounded,
+				   struct kernel_sigaction *__unbounded, size_t);
 
-#endif
+#include <sysdeps/unix/sysv/linux/sigaction.c>
