@@ -24,15 +24,15 @@
 .text
 
 #if defined HAVE_ELF && defined PIC && defined DO_VERSIONING
-#define GETRUSAGE	__getrusage_tv64
+#define WAIT4	__wait4_tv64
 #else
-#define GETRUSAGE	__getrusage
+#define WAIT4	__wait4
 #endif
 
 #if defined __ASSUME_TIMEVAL64
-PSEUDO(GETRUSAGE, getrusage, 2)
+PSEUDO(WAIT4, wait4, 4)
 	ret
-PSEUDO_END(GETRUSAGE)
+PSEUDO_END(WAIT4)
 #else
 /* The problem here is that initially we made struct timeval compatible with
    OSF/1, using int32.  But we defined time_t with uint64, and later found
@@ -44,9 +44,9 @@ PSEUDO_END(GETRUSAGE)
    functions which have RT equivalents.  */
 .comm __libc_missing_axp_tv64, 4
 
-LEAF(GETRUSAGE, 16)
+LEAF(WAIT4, 32)
 	ldgp	gp, 0(pv)
-	subq	sp, 16, sp
+	subq	sp, 32, sp
 #ifdef PROF
 	.set noat
 	lda	AT, _mcount
@@ -60,15 +60,17 @@ LEAF(GETRUSAGE, 16)
 	/* Save arguments in case we do need to fall back.  */
 	stq	a0, 0(sp)
 	stq	a1, 8(sp)
+	stq	a2, 16(sp)
+	stq	a3, 24(sp)
 
 	bne	t0, $do32
 
-	ldi	v0, SYS_ify(getrusage)
+	ldi	v0, SYS_ify(wait4)
 	callsys
 	bne	a3, $err64
 
 	/* Everything ok.  */
-	addq	sp, 16, sp
+	addq	sp, 32, sp
 	ret
 
 	/* If we didn't get ENOSYS, it is a real error.  */
@@ -78,72 +80,77 @@ $err64:	cmpeq	v0, ENOSYS, t0
 	stl	t0, __libc_missing_axp_tv64
 
 	/* Recover the saved arguments.  */
+	ldq	a3, 24(sp)
+	ldq	a2, 16(sp)
 	ldq	a1, 8(sp)
 	ldq	a0, 0(sp)
 
 	.align 3
-$do32:	ldi	v0, SYS_ify(osf_getrusage)
+$do32:	ldi	v0, SYS_ify(osf_wait4)
 	callsys
 	bne	a3, $error
 
 	/* Copy back to proper format.  */
-	ldq	a1, 8(sp)
-	ldl	t0, 0(a1)		# ru_utime.tv_sec
-	ldl	t1, 4(a1)		# ru_utime.tv_usec
-	ldl	t2, 8(a1)		# ru_stime.tv_sec
-	ldl	t3, 12(a1)		# ru_stime.tv_usec
-	ldt	$f15, 16(a1)		# ru_maxrss
-	ldt	$f16, 24(a1)		# ru_ixrss
-	ldt	$f17, 32(a1)		# ru_idrss
-	ldt	$f18, 40(a1)		# ru_isrss
-	ldt	$f19, 48(a1)		# ru_minflt
-	ldt	$f20, 56(a1)		# ru_majflt
-	ldt	$f21, 64(a1)		# ru_nswap
-	ldt	$f22, 72(a1)		# ru_inblock
-	ldt	$f23, 80(a1)		# ru_oublock
-	ldt	$f24, 88(a1)		# ru_msgsend
-	ldt	$f25, 96(a1)		# ru_msgrcv
-	ldt	$f26, 104(a1)		# ru_nsignals
-	ldt	$f27, 112(a1)		# ru_nvcsw
+	ldq	a3, 24(sp)
+	beq	a3, 2f
+	ldl	t0, 0(a3)		# ru_utime.tv_sec
+	ldl	t1, 4(a3)		# ru_utime.tv_usec
+	ldl	t2, 8(a3)		# ru_stime.tv_sec
+	ldl	t3, 12(a3)		# ru_stime.tv_usec
+	ldt	$f15, 16(a3)		# ru_maxrss
+	ldt	$f16, 24(a3)		# ru_ixrss
+	ldt	$f17, 32(a3)		# ru_idrss
+	ldt	$f18, 40(a3)		# ru_isrss
+	ldt	$f19, 48(a3)		# ru_minflt
+	ldt	$f20, 56(a3)		# ru_majflt
+	ldt	$f21, 64(a3)		# ru_nswap
+	ldt	$f22, 72(a3)		# ru_inblock
+	ldt	$f23, 80(a3)		# ru_oublock
+	ldt	$f24, 88(a3)		# ru_msgsend
+	ldt	$f25, 96(a3)		# ru_msgrcv
+	ldt	$f26, 104(a3)		# ru_nsignals
+	ldt	$f27, 112(a3)		# ru_nvcsw
 	.set noat
-	ldt	$f28, 120(a1)		# ru_nivcsw
-	.set at
-	stq	t0, 0(a1)
-	stq	t1, 8(a1)
-	stq	t2, 16(a1)
-	stq	t3, 24(a1)
-	stt	$f15, 32(a1)
-	stt	$f16, 40(a1)
-	stt	$f17, 48(a1)
-	stt	$f18, 56(a1)
-	stt	$f19, 64(a1)
-	stt	$f20, 72(a1)
-	stt	$f21, 80(a1)
-	stt	$f22, 88(a1)
-	stt	$f23, 96(a1)
-	stt	$f24, 104(a1)
-	stt	$f25, 112(a1)
-	stt	$f26, 120(a1)
-	stt	$f27, 128(a1)
-	.set noat
-	stt	$f28, 136(a1)
+	ldt	$f28, 120(a3)		# ru_nivcsw
+	stq	t0, 0(a3)
+	stq	t1, 8(a3)
+	stq	t2, 16(a3)
+	stq	t3, 24(a3)
+	stt	$f15, 32(a3)
+	stt	$f16, 40(a3)
+	stt	$f17, 48(a3)
+	stt	$f18, 56(a3)
+	stt	$f19, 64(a3)
+	stt	$f20, 72(a3)
+	stt	$f21, 80(a3)
+	stt	$f22, 88(a3)
+	stt	$f23, 96(a3)
+	stt	$f24, 104(a3)
+	stt	$f25, 112(a3)
+	stt	$f26, 120(a3)
+	stt	$f27, 128(a3)
+	stt	$f28, 136(a3)
 	.set at
 
-	addq	sp, 16, sp
+2:	addq	sp, 32, sp
 	ret
 
 	.align 3
 $error:
-	addq	sp, 16, sp
+	addq	sp, 32, sp
 	SYSCALL_ERROR_HANDLER
 
-END(GETRUSAGE)
+END(WAIT4)
 #endif /* __ASSUME_TIMEVAL64 */
 
 #if defined HAVE_ELF && defined PIC && defined DO_VERSIONING
-strong_alias(__getrusage_tv64, ____getrusage_tv64)
-default_symbol_version (____getrusage_tv64, __getrusage, GLIBC_2.1)
-default_symbol_version (__getrusage_tv64, getrusage, GLIBC_2.1)
+default_symbol_version (__wait4_tv64, __wait4, GLIBC_2.1)
+
+/* It seems to me to be a misfeature of the assembler that we can only
+   have one version-alias per symbol.  So create an alias ourselves.
+   The 'p' is for 'public'.  *Shrug*  */
+strong_alias (__wait4_tv64, __wait4_tv64p)
+default_symbol_version (__wait4_tv64p, wait4, GLIBC_2.1)
 #else
-weak_alias (__getrusage, getrusage)
+weak_alias (__wait4, wait4)
 #endif

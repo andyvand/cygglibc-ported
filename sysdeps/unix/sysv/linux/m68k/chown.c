@@ -1,5 +1,4 @@
-/* Copyright (C) 1997,1998,1999,2000,2002,2003,2005,2006
-   	Free Software Foundation, Inc.
+/* Copyright (C) 1998,2000,2002,2003,2006 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -17,8 +16,6 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#include <sys/types.h>
-#include <endian.h>
 #include <errno.h>
 #include <unistd.h>
 
@@ -26,51 +23,47 @@
 #include <sys/syscall.h>
 #include <bp-checks.h>
 
+#include <linux/posix_types.h>
 #include <kernel-features.h>
 
-#ifdef __NR_truncate64
-#ifndef __ASSUME_TRUNCATE64_SYSCALL
-/* The variable is shared between all wrappers around *truncate64 calls.  */
-int __have_no_truncate64;
-#endif
+#ifdef __NR_chown32
+# if __ASSUME_32BITUIDS == 0
+/* This variable is shared with all files that need to check for 32bit
+   uids.  */
+extern int __libc_missing_32bit_uids;
+# endif
+#endif /* __NR_chown32 */
 
-/* Truncate the file FD refers to to LENGTH bytes.  */
 int
-truncate64 (const char *path, off64_t length)
+__chown (const char *file, uid_t owner, gid_t group)
 {
-#ifndef __ASSUME_TRUNCATE64_SYSCALL
-  if (! __have_no_truncate64)
-#endif
+#if __ASSUME_32BITUIDS > 0
+  return INLINE_SYSCALL (chown32, 3, CHECK_STRING (file), owner, group);
+#else
+# ifdef __NR_chown32
+  if (__libc_missing_32bit_uids <= 0)
     {
-      unsigned int low = length & 0xffffffff;
-      unsigned int high = length >> 32;
-#ifndef __ASSUME_TRUNCATE64_SYSCALL
+      int result;
       int saved_errno = errno;
-#endif
-      int result = INLINE_SYSCALL (truncate64, 4, CHECK_STRING (path), 0,
-				   __LONG_LONG_PAIR (high, low));
-#ifndef __ASSUME_TRUNCATE64_SYSCALL
-      if (result != -1 || errno != ENOSYS)
-#endif
+
+      result = INLINE_SYSCALL (chown32, 3, CHECK_STRING (file), owner, group);
+      if (result == 0 || errno != ENOSYS)
 	return result;
 
-#ifndef __ASSUME_TRUNCATE64_SYSCALL
       __set_errno (saved_errno);
-      __have_no_truncate64 = 1;
-#endif
+      __libc_missing_32bit_uids = 1;
     }
+# endif /* __NR_chown32 */
 
-#ifndef __ASSUME_TRUNCATE64_SYSCALL
-  if ((off_t) length != length)
+  if (((owner + 1) > (gid_t) ((__kernel_uid_t) -1U))
+      || ((group + 1) > (gid_t) ((__kernel_gid_t) -1U)))
     {
       __set_errno (EINVAL);
       return -1;
     }
-  return truncate (path, (off_t) length);
+
+  return INLINE_SYSCALL (chown, 3, CHECK_STRING (file), owner, group);
 #endif
 }
-
-#else
-/* Use the generic implementation.  */
-# include <misc/truncate64.c>
-#endif
+libc_hidden_def (__chown)
+weak_alias (__chown, chown)
