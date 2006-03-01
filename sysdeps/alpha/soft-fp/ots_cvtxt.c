@@ -1,5 +1,5 @@
-/* long double square root in software floating-point emulation.
-   Copyright (C) 1997, 1999, 2006 Free Software Foundation, Inc.
+/* Software floating-point emulation: floating point truncation.
+   Copyright (C) 1997,1999,2004,2006 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Richard Henderson (rth@cygnus.com) and
 		  Jakub Jelinek (jj@ultra.linux.cz).
@@ -19,22 +19,26 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#include <stdlib.h>
-#include <soft-fp.h>
-#include <quad.h>
+#include "local-soft-fp.h"
+#include "double.h"
 
-long double
-__ieee754_sqrtl (const long double a)
+double
+_OtsConvertFloatXT (long al, long ah, long _round)
 {
   FP_DECL_EX;
-  FP_DECL_Q(A); FP_DECL_Q(C);
-  long double c;
-  long _round = 4;	/* dynamic rounding */
+  FP_DECL_Q(A);
+  FP_DECL_D(R);
+  double r;
 
   FP_INIT_ROUNDMODE;
-  FP_UNPACK_Q(A, a);
-  FP_SQRT_Q(C, A);
-  FP_PACK_Q(c, C);
+  FP_UNPACK_SEMIRAW_Q(A, a);
+#if (2 * _FP_W_TYPE_SIZE) < _FP_FRACBITS_Q
+  FP_TRUNC(D,Q,2,4,R,A);
+#else
+  FP_TRUNC(D,Q,1,2,R,A);
+#endif
+  FP_PACK_SEMIRAW_D(r, R);
   FP_HANDLE_EXCEPTIONS;
-  return c;
+
+  return r;
 }

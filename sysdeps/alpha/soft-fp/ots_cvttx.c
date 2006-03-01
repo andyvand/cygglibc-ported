@@ -1,5 +1,5 @@
-/* long double square root in software floating-point emulation.
-   Copyright (C) 1997, 1999, 2006 Free Software Foundation, Inc.
+/* Software floating-point emulation: floating point extension.
+   Copyright (C) 1997,1999,2004,2006 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Richard Henderson (rth@cygnus.com) and
 		  Jakub Jelinek (jj@ultra.linux.cz).
@@ -19,22 +19,30 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#include <stdlib.h>
-#include <soft-fp.h>
-#include <quad.h>
+#include "local-soft-fp.h"
+#include "double.h"
 
-long double
-__ieee754_sqrtl (const long double a)
+/* Should never actually be used, since we're extending, but needed
+   for linkage.  */
+#undef FP_ROUNDMODE
+#define FP_ROUNDMODE  FP_RND_ZERO
+
+void
+_OtsConvertFloatTX(double a)
 {
   FP_DECL_EX;
-  FP_DECL_Q(A); FP_DECL_Q(C);
-  long double c;
-  long _round = 4;	/* dynamic rounding */
+  FP_DECL_D(A);
+  FP_DECL_Q(C);
+  FP_DECL_RETURN(c);
 
-  FP_INIT_ROUNDMODE;
-  FP_UNPACK_Q(A, a);
-  FP_SQRT_Q(C, A);
-  FP_PACK_Q(c, C);
+  FP_UNPACK_RAW_D(A, a);
+#if (2 * _FP_W_TYPE_SIZE) < _FP_FRACBITS_Q
+  FP_EXTEND(Q,D,4,2,C,A);
+#else
+  FP_EXTEND(Q,D,2,1,C,A);
+#endif
+  FP_PACK_RAW_Q(c, C);
   FP_HANDLE_EXCEPTIONS;
-  return c;
+
+  FP_RETURN(c);
 }
