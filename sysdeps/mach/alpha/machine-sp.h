@@ -1,6 +1,6 @@
-/* Copyright (C) 2000, 2006, 2007 Free Software Foundation, Inc.
+/* Machine-specific function to return the stack pointer.  Alpha version.
+   Copyright (C) 1994, 1997, 2007 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
-   Contributed by Richard Henderson.
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -17,29 +17,20 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#include <math.h>
-#include <math_ldbl_opt.h>
+#ifndef _MACHINE_SP_H
+#define _MACHINE_SP_H
 
+/* Return the current stack pointer.  */
 
-double
-__rint (double x)
+#ifndef _EXTERN_INLINE
+#define _EXTERN_INLINE __extern_inline
+#endif
+
+_EXTERN_INLINE void *
+__thread_stack_pointer (void)
 {
-  double two52 = copysign (0x1.0p52, x);
-  double r;
-  
-  r = x + two52;
-  r = r - two52;
-
-  /* rint(-0.1) == -0, and in general we'll always have the same sign
-     as our input.  */
-  return copysign (r, x);
+  register void *__sp__ __asm__ ("$30");
+  return __sp__;
 }
 
-weak_alias (__rint, rint)
-#ifdef NO_LONG_DOUBLE
-strong_alias (__rint, __rintl)
-weak_alias (__rint, rintl)
-#endif
-#if LONG_DOUBLE_COMPAT(libm, GLIBC_2_0)
-compat_symbol (libm, __rint, rintl, GLIBC_2_0);
-#endif
+#endif	/* machine-sp.h */

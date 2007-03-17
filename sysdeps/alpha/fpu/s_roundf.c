@@ -1,4 +1,4 @@
-/* Copyright (C) 1998, 2000, 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2007 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Richard Henderson.
 
@@ -18,36 +18,27 @@
    02111-1307 USA.  */
 
 #include <math.h>
-#include <math_ldbl_opt.h>
 
-/* Use the -inf rounding mode conversion instructions to implement
-   ceil, via something akin to -floor(-x).  This is much faster than
-   playing with the fpcr to achieve +inf rounding mode.  */
 
-double
-__ceil (double x)
+float
+__roundf (float x)
 {
-  double two52 = copysign (0x1.0p52, x);
-  double r, tmp;
+  const float almost_half = 0x1.fffffep-2;
+  const float two23 = 0x1.0p23;
+  float r, tmp;
   
   __asm (
 #ifdef _IEEE_FP_INEXACT
-	 "addt/suim %2, %3, %1\n\tsubt/suim %1, %3, %0"
+	 "adds/suic %2, %3, %1\n\tsubs/suic %1, %3, %0"
 #else
-	 "addt/sum %2, %3, %1\n\tsubt/sum %1, %3, %0"
+	 "adds/suc %2, %3, %1\n\tsubs/suc %1, %3, %0"
 #endif
 	 : "=&f"(r), "=&f"(tmp)
-	 : "f"(-x), "f"(-two52));
+	 : "f"(fabsf (x) + almost_half), "f"(two23));
 
-  /* Fix up the negation we did above, as well as handling -0 properly. */
-  return copysign (r, x);
+  /* round(-0) == -0, and in general we'll always have the same
+     sign as our input.  */
+  return copysignf (r, x);
 }
 
-weak_alias (__ceil, ceil)
-#ifdef NO_LONG_DOUBLE
-strong_alias (__ceil, __ceill)
-weak_alias (__ceil, ceill)
-#endif
-#if LONG_DOUBLE_COMPAT(libm, GLIBC_2_0)
-compat_symbol (libm, __ceil, ceill, GLIBC_2_0);
-#endif
+weak_alias (__roundf, roundf)

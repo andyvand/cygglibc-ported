@@ -1,6 +1,6 @@
-/* Copyright (C) 2000, 2006, 2007 Free Software Foundation, Inc.
+/* Auxiliary vector processing for Linux/Alpha.
+   Copyright (C) 2007 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
-   Contributed by Richard Henderson.
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -17,29 +17,20 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#include <math.h>
-#include <math_ldbl_opt.h>
+/* Scan the Aux Vector for the cache shape entries.  */
 
+long __libc_alpha_cache_shape[4] = { -2, -2, -2, -2 };
 
-double
-__rint (double x)
-{
-  double two52 = copysign (0x1.0p52, x);
-  double r;
-  
-  r = x + two52;
-  r = r - two52;
-
-  /* rint(-0.1) == -0, and in general we'll always have the same sign
-     as our input.  */
-  return copysign (r, x);
-}
-
-weak_alias (__rint, rint)
-#ifdef NO_LONG_DOUBLE
-strong_alias (__rint, __rintl)
-weak_alias (__rint, rintl)
-#endif
-#if LONG_DOUBLE_COMPAT(libm, GLIBC_2_0)
-compat_symbol (libm, __rint, rintl, GLIBC_2_0);
-#endif
+#define DL_PLATFORM_AUXV				\
+      case AT_L1I_CACHESHAPE:				\
+	__libc_alpha_cache_shape[0] = av->a_un.a_val;	\
+	break;						\
+      case AT_L1D_CACHESHAPE:				\
+	__libc_alpha_cache_shape[1] = av->a_un.a_val;	\
+	break;						\
+      case AT_L2_CACHESHAPE:				\
+	__libc_alpha_cache_shape[2] = av->a_un.a_val;	\
+	break;						\
+      case AT_L3_CACHESHAPE:				\
+	__libc_alpha_cache_shape[3] = av->a_un.a_val;	\
+	break;

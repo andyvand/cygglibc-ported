@@ -1,6 +1,5 @@
-/* Copyright (C) 2000, 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2007 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
-   Contributed by Richard Henderson.
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -17,29 +16,23 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
+#define __llroundf	not___llroundf
+#define llroundf	not_llroundf
 #include <math.h>
-#include <math_ldbl_opt.h>
+#undef __llroundf
+#undef llroundf
 
 
-double
-__rint (double x)
+long int
+__lroundf (float x)
 {
-  double two52 = copysign (0x1.0p52, x);
-  double r;
-  
-  r = x + two52;
-  r = r - two52;
+  float adj;
 
-  /* rint(-0.1) == -0, and in general we'll always have the same sign
-     as our input.  */
-  return copysign (r, x);
+  adj = 0x1.fffffep-2;		/* nextafterf (0.5f, 0.0f) */
+  adj = copysignf (adj, x);
+  return x + adj;
 }
 
-weak_alias (__rint, rint)
-#ifdef NO_LONG_DOUBLE
-strong_alias (__rint, __rintl)
-weak_alias (__rint, rintl)
-#endif
-#if LONG_DOUBLE_COMPAT(libm, GLIBC_2_0)
-compat_symbol (libm, __rint, rintl, GLIBC_2_0);
-#endif
+strong_alias (__lroundf, __llroundf)
+weak_alias (__lroundf, lroundf)
+weak_alias (__llroundf, llroundf)
