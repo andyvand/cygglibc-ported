@@ -1,3 +1,8 @@
+2010-06-11  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* sysdeps/unix/sysv/linux/m68k/nptl/bits/pthreadtypes.h: Force
+	alignment of futex variables.
+
 2010-03-13  Andreas Schwab  <schwab@linux-m68k.org>
 
 	* sysdeps/m68k/m680x0/fpu/s_ccosh.c: Use signbit macro.
