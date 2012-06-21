@@ -1,3 +1,7 @@
+2012-05-17  Chris Metcalf  <cmetcalf@tilera.com>
+
+	* sysdeps/tile/fegetenv.c: Version fegetenv() like fesetenv().
+
 2012-05-16  Chris Metcalf  <cmetcalf@tilera.com>
 
 	* sysdeps/unix/sysv/linux/tile/ucontext_i: Fix tilegx32 offset bug.
